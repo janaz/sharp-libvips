@@ -34,11 +34,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install dependencies (macOS)
-      run: |
-        pip3 install meson ninja
-        brew install advancecomp automake brotli nasm pkg-config
-      if: matrix.platform == 'darwin-x64'
     - name: Build ${{ matrix.platform }}
       id: build-release
       run: |
