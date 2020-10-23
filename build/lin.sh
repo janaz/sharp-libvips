@@ -81,16 +81,7 @@ VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.32
 VERSION_GETTEXT=0.21
-VERSION_GDKPIXBUF=2.40.0
-VERSION_FREETYPE=2.10.4
 VERSION_EXPAT=2.2.10
-VERSION_FONTCONFIG=2.13.92
-VERSION_HARFBUZZ=2.7.2
-VERSION_PIXMAN=0.40.0
-VERSION_CAIRO=1.16.0
-VERSION_FRIBIDI=1.0.10
-VERSION_PANGO=1.47.0
-VERSION_SVG=2.50.1
 VERSION_GIF=5.1.4
 VERSION_AOM=2541b8ad4f622065bbc63c7027f535e6949d3564
 VERSION_HEIF=1.9.1
@@ -123,16 +114,7 @@ version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "13521"
 version_latest "orc" "$VERSION_ORC" "2573"
 version_latest "gettext" "$VERSION_GETTEXT" "898"
-version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
-version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
-version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
-version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
-version_latest "pixman" "$VERSION_PIXMAN" "3648"
-#version_latest "cairo" "$VERSION_CAIRO" "247" # latest version in release monitoring is unstable
-version_latest "fribidi" "$VERSION_FRIBIDI" "857"
-version_latest "pango" "$VERSION_PANGO" "11783"
-version_latest "svg" "$VERSION_SVG" "5420"
 #version_latest "gif" "$VERSION_GIF" "1158" # v5.1.5+ provides a Makefile only so will require custom cross-compilation setup
 #version_latest "aom" "$VERSION_AOM" "17628" # latest version in release monitoring does not exist
 version_latest "heif" "$VERSION_HEIF" "64439"
@@ -269,108 +251,12 @@ LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=r
 ninja -C _build
 ninja -C _build install
 
-mkdir ${DEPS}/gdkpixbuf
-$CURL https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDKPIXBUF)/gdk-pixbuf-${VERSION_GDKPIXBUF}.tar.xz | tar xJC ${DEPS}/gdkpixbuf --strip-components=1
-cd ${DEPS}/gdkpixbuf
-# Disable tests and thumbnailer
-sed -i'.bak' "/subdir('tests')/{N;d;}" meson.build
-# Disable the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
-sed -i'.bak' "/\[ 'bmp'/{N;N;N;d;}" gdk-pixbuf/meson.build
-sed -i'.bak' "/\[ 'pnm'/d" gdk-pixbuf/meson.build
-sed -i'.bak' "/\[ 'xpm'/{N;N;N;N;N;d;}" gdk-pixbuf/meson.build
-# Ensure meson can find libjpeg when cross-compiling
-sed -i'.bak' "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/g" meson.build
-sed -i'.bak' "s/cc.find_library('jpeg'/dependency('libjpeg'/g" meson.build
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dtiff=false -Dx11=false -Dgir=false -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
-ninja -C _build
-ninja -C _build install
-# Include libjpeg and libpng as a dependency of gdk-pixbuf, see: https://gitlab.gnome.org/GNOME/gdk-pixbuf/merge_requests/50
-sed -i'.bak' "s/^\(Requires:.*\)/\1 libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/gdk-pixbuf-2.0.pc
-
-mkdir ${DEPS}/freetype
-$CURL https://download.savannah.gnu.org/releases/freetype/freetype-${VERSION_FREETYPE}.tar.xz | tar xJC ${DEPS}/freetype --strip-components=1
-cd ${DEPS}/freetype
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bzip2 --without-png
-make install
-
 mkdir ${DEPS}/expat
 $CURL https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPAT//./_}/expat-${VERSION_EXPAT}.tar.xz | tar xJC ${DEPS}/expat --strip-components=1
 cd ${DEPS}/expat
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
   --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom
 make install
-
-mkdir ${DEPS}/fontconfig
-$CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
-cd ${DEPS}/fontconfig
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --with-expat-includes=${TARGET}/include --with-expat-lib=${TARGET}/lib ${LINUX:+--sysconfdir=/etc} \
-  ${DARWIN:+--sysconfdir=/usr/local/etc} --disable-docs
-make install-strip
-
-mkdir ${DEPS}/harfbuzz
-$CURL https://github.com/harfbuzz/harfbuzz/archive/${VERSION_HARFBUZZ}.tar.gz | tar xzC ${DEPS}/harfbuzz --strip-components=1
-cd ${DEPS}/harfbuzz
-# Disable utils
-sed -i'.bak' "/subdir('util')/d" meson.build
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dicu=disabled -Dtests=disabled -Dintrospection=disabled -Ddocs=disabled -Dbenchmark=disabled ${DARWIN:+-Dcoretext=enabled}
-ninja -C _build
-ninja -C _build install
-
-mkdir ${DEPS}/pixman
-$CURL https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
-cd ${DEPS}/pixman
-# Disable tests and demos
-sed -i'.bak' "/subdir('test')/{N;d;}" meson.build
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dlibpng=disabled -Diwmmxt=disabled -Dgtk=disabled -Dopenmp=disabled
-ninja -C _build
-ninja -C _build install
-
-mkdir ${DEPS}/cairo
-$CURL https://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
-cd ${DEPS}/cairo
-sed -i'.bak' "s/^\(Libs:.*\)/\1 @CAIRO_NONPKGCONFIG_LIBS@/" src/cairo.pc.in
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-xlib --disable-xcb --disable-win32 --disable-egl --disable-glx --disable-wgl --disable-ps \
-  --disable-trace --disable-interpreter ${LINUX:+--disable-quartz} ${DARWIN:+--enable-quartz-image} \
-  LIBS="-lpixman-1 -lfreetype"
-make install-strip
-
-mkdir ${DEPS}/fribidi
-$CURL https://github.com/fribidi/fribidi/releases/download/v${VERSION_FRIBIDI}/fribidi-${VERSION_FRIBIDI}.tar.xz | tar xJC ${DEPS}/fribidi --strip-components=1
-cd ${DEPS}/fribidi
-# Disable tests
-sed -i'.bak' "/subdir('test')/d" meson.build
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Ddocs=false
-ninja -C _build
-ninja -C _build install
-
-mkdir ${DEPS}/pango
-$CURL https://download.gnome.org/sources/pango/$(without_patch $VERSION_PANGO)/pango-${VERSION_PANGO}.tar.xz | tar xJC ${DEPS}/pango --strip-components=1
-cd ${DEPS}/pango
-# Disable utils, examples, tests and tools
-sed -i'.bak' "/subdir('utils')/{N;N;N;d;}" meson.build
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dgtk_doc=false -Dintrospection=false -Duse_fontconfig=true
-ninja -C _build
-ninja -C _build install
-
-mkdir ${DEPS}/svg
-$CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
-cd ${DEPS}/svg
-sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
-# Do not include debugging symbols
-sed -i'.bak' "/debug =/ s/= .*/= false/" Cargo.toml
-# LTO optimization does not work for staticlib+rlib compilation
-sed -i'.bak' "s/, \"rlib\"//" librsvg/Cargo.toml
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-introspection --disable-tools --disable-pixbuf-loader ${DARWIN:+--disable-Bsymbolic}
-make install-strip
 
 mkdir ${DEPS}/gif
 $CURL https://downloads.sourceforge.net/project/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1
@@ -438,27 +324,18 @@ copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filtered
 cd ${TARGET}
 printf "{\n\
   \"aom\": \"${VERSION_AOM}\",\n\
-  \"cairo\": \"${VERSION_CAIRO}\",\n\
   \"exif\": \"${VERSION_EXIF}\",\n\
   \"expat\": \"${VERSION_EXPAT}\",\n\
   \"ffi\": \"${VERSION_FFI}\",\n\
-  \"fontconfig\": \"${VERSION_FONTCONFIG}\",\n\
-  \"freetype\": \"${VERSION_FREETYPE}\",\n\
-  \"fribidi\": \"${VERSION_FRIBIDI}\",\n\
-  \"gdkpixbuf\": \"${VERSION_GDKPIXBUF}\",\n\
   \"gettext\": \"${VERSION_GETTEXT}\",\n\
   \"gif\": \"${VERSION_GIF}\",\n\
   \"glib\": \"${VERSION_GLIB}\",\n\
   \"gsf\": \"${VERSION_GSF}\",\n\
-  \"harfbuzz\": \"${VERSION_HARFBUZZ}\",\n\
   \"heif\": \"${VERSION_HEIF}\",\n\
   \"jpeg\": \"${VERSION_JPEG}\",\n\
   \"lcms\": \"${VERSION_LCMS2}\",\n\
   \"orc\": \"${VERSION_ORC}\",\n\
-  \"pango\": \"${VERSION_PANGO}\",\n\
-  \"pixman\": \"${VERSION_PIXMAN}\",\n\
   \"png\": \"${VERSION_PNG16}\",\n\
-  \"svg\": \"${VERSION_SVG}\",\n\
   \"spng\": \"${VERSION_SPNG}\",\n\
   \"tiff\": \"${VERSION_TIFF}\",\n\
   \"vips\": \"${VERSION_VIPS}\",\n\
