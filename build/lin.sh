@@ -74,7 +74,7 @@ VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
 VERSION_LCMS2=2.11
-VERSION_JPEG=2.0.5
+VERSION_JPEG=2.0.6
 VERSION_PNG16=1.6.37
 VERSION_SPNG=0.6.1
 VERSION_WEBP=1.1.0
@@ -141,7 +141,7 @@ mkdir ${DEPS}/ffi
 $CURL https://github.com/libffi/libffi/releases/download/v${VERSION_FFI}/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
 cd ${DEPS}/ffi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-builddir --disable-multi-os-directory --disable-raw-api
+  --disable-builddir --disable-multi-os-directory --disable-raw-api --disable-structs
 make install-strip
 
 mkdir ${DEPS}/glib
@@ -154,7 +154,7 @@ if [ "${PLATFORM%-*}" == "linuxmusl" ]; then
   $CURL https://gist.github.com/kleisauke/f4bda6fc3030cf7b8a4fdb88e2ce8e13/raw/246ac97dfba72ad7607c69eed1810b2354cd2e86/musl-libintl.patch | patch -p1
 fi
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled ${DARWIN:+-Dbsymbolic_functions=false}
+  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
 ninja -C _build install
 
