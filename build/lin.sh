@@ -124,6 +124,7 @@ VERSION_PANGO=1.48.7
 VERSION_SVG=2.51.3
 VERSION_AOM=3.1.1
 VERSION_HEIF=1.12.0
+VERSION_DE265=1.0.8
 
 # Remove patch version component
 without_patch() {
@@ -259,6 +260,13 @@ AOM_AS_FLAGS="${FLAGS}" LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" \
   ..
 make install/strip
 
+mkdir ${DEPS}/de265
+curl -Ls https://github.com/strukturag/libde265/releases/download/v${VERSION_DE265}/libde265-${VERSION_DE265}.tar.gz  | tar xzC ${DEPS}/de265 --strip-components=1
+cd ${DEPS}/de265
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
+  --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
+make install-strip
+
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
@@ -270,7 +278,7 @@ $CURL https://github.com/lovell/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d
 $CURL https://github.com/lovell/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
+  --disable-gdk-pixbuf --disable-go --disable-examples --enable-libde265 --disable-x265
 make install-strip
 
 mkdir ${DEPS}/jpeg
@@ -517,6 +525,7 @@ cd ${TARGET}
 printf "{\n\
   \"aom\": \"${VERSION_AOM}\",\n\
   \"cairo\": \"${VERSION_CAIRO}\",\n\
+  \"de265\": \"${VERSION_DE265}\",\n\
   \"exif\": \"${VERSION_EXIF}\",\n\
   \"expat\": \"${VERSION_EXPAT}\",\n\
   \"ffi\": \"${VERSION_FFI}\",\n\
