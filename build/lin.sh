@@ -93,7 +93,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
 VERSION_ZLIB_NG=2.1.6
-VERSION_FFI=3.4.5
+VERSION_FFI=3.4.6
 VERSION_GLIB=2.79.2
 VERSION_XML2=2.12.5
 VERSION_EXIF=0.6.24
@@ -179,6 +179,8 @@ version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
+version_latest "de265" "$VERSION_DE265" "strukturag/libde265"
+
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
 # Download and build dependencies from source
@@ -271,7 +273,7 @@ cd ${DEPS}/heif
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=0 -DWITH_X265=0
+  -DBUILD_SHARED_LIBS=FALSE -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=1 -DWITH_X265=0
 make install/strip
 
 mkdir ${DEPS}/jpeg
