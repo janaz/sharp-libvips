@@ -364,7 +364,7 @@ build_freetype() {
   $CURL https://github.com/freetype/freetype/archive/VER-${VERSION_FREETYPE//./-}.tar.gz | tar xzC ${DEPS}/freetype --strip-components=1
   cd ${DEPS}/freetype
   meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-    -Dzlib=enabled -Dpng=disabled -Dbrotli=disabled -Dbzip2=disabled "$@"
+    -Dzlib=enabled -Dpng=enabled -Dbrotli=disabled -Dbzip2=disabled "$@"
   meson install -C _build --tag devel
 }
 build_freetype -Dharfbuzz=disabled
@@ -390,8 +390,7 @@ mkdir ${DEPS}/fontconfig
 $CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled \
-  ${LINUX:+--sysconfdir=/etc} ${DARWIN:+--sysconfdir=/usr/local/etc}
+  -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/harfbuzz
