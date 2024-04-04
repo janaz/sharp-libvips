@@ -111,12 +111,12 @@ VERSION_FREETYPE=2.13.2
 VERSION_EXPAT=2.6.2
 VERSION_ARCHIVE=3.7.2
 VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=8.3.1
+VERSION_HARFBUZZ=8.4.0
 VERSION_PIXMAN=0.43.4
 VERSION_CAIRO=1.18.0
 VERSION_FRIBIDI=1.0.13
-VERSION_PANGO=1.52.1
-VERSION_RSVG=2.57.2
+VERSION_PANGO=1.52.2
+VERSION_RSVG=2.57.3
 VERSION_AOM=3.8.2
 VERSION_HEIF=1.17.6
 VERSION_CGIF=0.3.2
@@ -406,7 +406,7 @@ meson install -C _build --tag devel
 # https://bugs.freedesktop.org/show_bug.cgi?id=7331
 # https://gitlab.freedesktop.org/pkg-config/pkg-config/-/commit/6d6dd43e75e2bc82cfe6544f8631b1bef6e1cf45
 # TODO(kleisauke): Remove when Amazon Linux 2 reaches EOL.
-sed -i'.bak' "/^Requires:/s/ freetype2,//" ${TARGET}/lib/pkgconfig/harfbuzz.pc
+sed -i'.bak' "/^Requires:/s/ freetype2.*,//" ${TARGET}/lib/pkgconfig/harfbuzz.pc
 sed -i'.bak' "/^Libs:/s/$/ -lfreetype/" ${TARGET}/lib/pkgconfig/harfbuzz.pc
 
 build_freetype -Dharfbuzz=enabled
@@ -469,6 +469,8 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
+# Disable HBR support in heifsave
+$CURL https://github.com/kleisauke/libvips/commit/ad921cf9396dc5a224e93c71b601e87bd3a8a521.patch | patch -p1
 # Link libvips.so.42 statically into libvips-cpp.so.42
 sed -i'.bak' "s/library('vips'/static_&/" libvips/meson.build
 sed -i'.bak' "/version: library_version/{N;d;}" libvips/meson.build
