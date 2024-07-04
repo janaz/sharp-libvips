@@ -92,7 +92,7 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.2.0
+VERSION_ZLIB_NG=2.2.1
 VERSION_FFI=3.4.6
 VERSION_GLIB=2.80.3
 VERSION_XML2=2.13.1
@@ -152,7 +152,7 @@ version_latest() {
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
   fi
 }
-version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592" # latest version in release monitoring is a release candidate
+version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
 version_latest "ffi" "$VERSION_FFI" "1611"
 version_latest "glib" "$VERSION_GLIB" "10024" "unstable"
 version_latest "xml2" "$VERSION_XML2" "1783"
@@ -176,7 +176,7 @@ version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
-#version_latest "heif" "$VERSION_HEIF" "strukturag/libheif" # latest version is an rc
+version_latest "heif" "$VERSION_HEIF" "64439"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
 version_latest "de265" "$VERSION_DE265" "strukturag/libde265"
 
@@ -206,6 +206,9 @@ fi
 mkdir ${DEPS}/zlib-ng
 $CURL https://github.com/zlib-ng/zlib-ng/archive/${VERSION_ZLIB_NG}.tar.gz | tar xzC ${DEPS}/zlib-ng --strip-components=1
 cd ${DEPS}/zlib-ng
+if [ "$MACOSX_DEPLOYMENT_TARGET" = "10.13" ]; then
+  sed -i'.bak' "/-DHAVE_ALIGNED_ALLOC/d" CMakeLists.txt
+fi
 CFLAGS="${CFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE -DWITH_ARMV6=FALSE
