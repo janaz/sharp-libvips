@@ -1,7 +1,7 @@
-FROM debian:buster
+FROM debian:bullseye
 LABEL maintainer="Lovell Fuller <npm@lovell.info>"
 
-# Create Debian 10 (glibc 2.28) container suitable for cross-compiling Linux ARMv7-A binaries
+# Create Debian 11 (glibc 2.31) container suitable for cross-compiling Linux ppc64le binaries
 
 # Path settings
 ENV \
@@ -13,13 +13,12 @@ ENV \
 RUN \
   apt-get update && \
   apt-get install -y curl && \
-  dpkg --add-architecture armhf && \
-  apt-get update && \
+  dpkg --add-architecture ppc64el && \
   apt-get install -y \
     autoconf \
     autopoint \
     cmake \
-    crossbuild-essential-armhf \
+    crossbuild-essential-ppc64el \
     gettext \
     git \
     gperf \
@@ -35,17 +34,21 @@ RUN \
     --no-modify-path \
     --profile minimal \
     && \
-  rustup target add arm-unknown-linux-gnueabihf && \
+  rustup target add powerpc64le-unknown-linux-gnu && \
   cargo install cargo-c && \
   pip3 install meson tomli
 
+# Handy for debugging the compiled targets in Highway (hwy_list_targets)
+#RUN apt-get install -y qemu-user-static
+#ENV QEMU_LD_PREFIX="/usr/powerpc64le-linux-gnu"
+
 # Compiler settings
 ENV \
-  PKG_CONFIG="arm-linux-gnueabihf-pkg-config --static" \
-  PLATFORM="linux-armv7" \
-  CHOST="arm-linux-gnueabihf" \
-  RUST_TARGET="arm-unknown-linux-gnueabihf" \
-  FLAGS="-marm -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard" \
+  PKG_CONFIG="powerpc64le-linux-gnu-pkg-config --static" \
+  PLATFORM="linux-ppc64le" \
+  CHOST="powerpc64le-linux-gnu" \
+  RUST_TARGET="powerpc64le-unknown-linux-gnu" \
+  FLAGS="" \
   MESON="--cross-file=/root/meson.ini"
 
 COPY Toolchain.cmake /root/
