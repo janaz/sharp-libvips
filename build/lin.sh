@@ -106,7 +106,7 @@ VERSION_WEBP=1.4.0
 VERSION_TIFF=4.6.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
-VERSION_FREETYPE=2.13.2
+VERSION_FREETYPE=2.13.3
 VERSION_EXPAT=2.6.2
 VERSION_ARCHIVE=3.7.4
 VERSION_FONTCONFIG=2.15.0
@@ -117,7 +117,7 @@ VERSION_FRIBIDI=1.0.15
 VERSION_PANGO=1.54.0
 VERSION_RSVG=2.58.93
 VERSION_AOM=3.9.1
-VERSION_HEIF=1.18.1
+VERSION_HEIF=1.18.2
 VERSION_CGIF=0.4.1
 VERSION_DE265=1.0.15
 
@@ -432,6 +432,13 @@ sed -i'.bak' "/image = /s/, \"gif\", \"webp\"//" rsvg/Cargo.toml
 sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 # Skip build of rsvg-convert
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
+# https://github.com/etemesi254/zune-image/pull/187
+# https://github.com/bevyengine/bevy/issues/14117#issuecomment-2236518551
+# https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html#the-patch-section
+cat >> Cargo.toml <<EOL
+[patch.crates-io]
+zune-jpeg = { git = "https://github.com/ironpeak/zune-image.git", rev = "eebb01b" }
+EOL
 # Regenerate the lockfile after making the above changes
 cargo generate-lockfile
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
@@ -452,7 +459,7 @@ mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 # Disable HBR support in heifsave
-$CURL https://github.com/kleisauke/libvips/commit/ad921cf9396dc5a224e93c71b601e87bd3a8a521.patch | patch -p1
+$CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
 # Link libvips.so.42 statically into libvips-cpp.so.42
 sed -i'.bak' "s/library('vips'/static_&/" libvips/meson.build
 sed -i'.bak' "/version: library_version/{N;d;}" libvips/meson.build
