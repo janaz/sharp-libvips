@@ -94,7 +94,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.2.1
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.81.1
+VERSION_GLIB=2.82.0
 VERSION_XML2=2.13.3
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
@@ -112,10 +112,10 @@ VERSION_ARCHIVE=3.7.4
 VERSION_FONTCONFIG=2.15.0
 VERSION_HARFBUZZ=9.0.0
 VERSION_PIXMAN=0.43.4
-VERSION_CAIRO=1.18.0
+VERSION_CAIRO=1.18.2
 VERSION_FRIBIDI=1.0.15
 VERSION_PANGO=1.54.0
-VERSION_RSVG=2.58.93
+VERSION_RSVG=2.58.94
 VERSION_AOM=3.9.1
 VERSION_HEIF=1.18.2
 VERSION_CGIF=0.4.1
@@ -227,7 +227,7 @@ cd ${DEPS}/glib
 $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/36e32c79e7962c5ea96cbb3f9c629e9145253e30/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
-  -Dtests=false -Dglib_assert=false -Dglib_checks=false ${DARWIN:+-Dbsymbolic_functions=false}
+  -Dtests=false -Dglib_assert=false -Dglib_checks=false -Dglib_debug=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 # bin-devel is needed for glib-compile-resources
 meson install -C _build --tag bin-devel,devel
 
@@ -403,7 +403,7 @@ mkdir ${DEPS}/cairo
 $CURL https://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  ${LINUX:+-Dquartz=disabled} ${DARWIN:+-Dquartz=enabled} -Dtee=disabled -Dxcb=disabled -Dxlib=disabled -Dzlib=disabled \
+  ${LINUX:+-Dquartz=disabled} ${DARWIN:+-Dquartz=enabled} -Dfreetype=enabled -Dfontconfig=enabled -Dtee=disabled -Dxcb=disabled -Dxlib=disabled -Dzlib=disabled \
   -Dtests=disabled -Dspectre=disabled -Dsymbol-lookup=disabled
 meson install -C _build --tag devel
 
