@@ -1,5 +1,5 @@
 {
-  "name": "@img/sharp-libvips",
+  "name": "@revizly/sharp-libvips",
   "version": "1.0.8",
   "private": "true",
   "workspaces": [

@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
+# Remove patch version component
+without_patch() {
+  echo "${1%.[[:digit:]]*}"
+}
+# Remove prerelease suffix
+without_prerelease() {
+  echo "${1%-[[:alnum:]]*}"
+}
+
 # Environment / working directories
 case ${PLATFORM} in
   linux*)
@@ -9,7 +18,7 @@ case ${PLATFORM} in
     TARGET=/target
     PACKAGE=/packaging
     ROOT=/root
-    VIPS_CPP_DEP=libvips-cpp.so.42
+    VIPS_CPP_DEP=libvips-cpp.so.$(without_prerelease $VERSION_VIPS)
     ;;
   darwin*)
     DARWIN=true
@@ -17,7 +26,7 @@ case ${PLATFORM} in
     TARGET=$PWD/target
     PACKAGE=$PWD
     ROOT=$PWD/platforms/$PLATFORM
-    VIPS_CPP_DEP=libvips-cpp.42.dylib
+    VIPS_CPP_DEP=libvips-cpp.$(without_prerelease $VERSION_VIPS).dylib
     ;;
 esac
 
@@ -92,43 +101,34 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.2.1
+VERSION_ZLIB_NG=2.2.2
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.82.0
-VERSION_XML2=2.13.3
+VERSION_GLIB=2.83.0
+VERSION_XML2=2.13.5
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.43
+VERSION_PNG16=1.6.44
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.4.0
-VERSION_TIFF=4.6.0
+VERSION_TIFF=4.7.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
-VERSION_EXPAT=2.6.3
-VERSION_ARCHIVE=3.7.4
+VERSION_EXPAT=2.6.4
+VERSION_ARCHIVE=3.7.7
 VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=9.0.0
-VERSION_PIXMAN=0.43.4
+VERSION_HARFBUZZ=10.1.0
+VERSION_PIXMAN=0.44.0
 VERSION_CAIRO=1.18.2
-VERSION_FRIBIDI=1.0.15
+VERSION_FRIBIDI=1.0.16
 VERSION_PANGO=1.54.0
-VERSION_RSVG=2.58.94
-VERSION_AOM=3.9.1
-VERSION_HEIF=1.18.2
+VERSION_RSVG=2.59.2
+VERSION_AOM=3.11.0
+VERSION_HEIF=1.19.5
 VERSION_CGIF=0.4.1
 VERSION_DE265=1.0.15
-
-# Remove patch version component
-without_patch() {
-  echo "${1%.[[:digit:]]*}"
-}
-# Remove prerelease suffix
-without_prerelease() {
-  echo "${1%-[[:alnum:]]*}"
-}
 
 # Check for newer versions
 # Skip by setting the VERSION_LATEST_REQUIRED environment variable to "false"
@@ -161,7 +161,7 @@ version_latest "lcms2" "$VERSION_LCMS2" "9815"
 version_latest "mozjpeg" "$VERSION_MOZJPEG" "mozilla/mozjpeg"
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "spng" "$VERSION_SPNG" "24289"
-version_latest "webp" "$VERSION_WEBP" "webmproject/libwebp"
+version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "highway" "$VERSION_HWY" "205809"
 version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
@@ -190,7 +190,7 @@ if [ "$DARWIN" = true ]; then
   if [ "$DARWIN_ARM" = true ]; then
     ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
   fi
-  CFLAGS= cargo install cargo-c
+  CFLAGS= cargo install cargo-c --locked
 fi
 
 if [ "${PLATFORM%-*}" == "linuxmusl" ] || [ "$DARWIN" = true ]; then
@@ -206,9 +206,6 @@ fi
 mkdir ${DEPS}/zlib-ng
 $CURL https://github.com/zlib-ng/zlib-ng/archive/${VERSION_ZLIB_NG}.tar.gz | tar xzC ${DEPS}/zlib-ng --strip-components=1
 cd ${DEPS}/zlib-ng
-if [ "$MACOSX_DEPLOYMENT_TARGET" = "10.13" ]; then
-  sed -i'.bak' "/-DHAVE_ALIGNED_ALLOC/d" CMakeLists.txt
-fi
 CFLAGS="${CFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE -DWITH_ARMV6=FALSE
@@ -325,7 +322,7 @@ $CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC $
 cd ${DEPS}/tiff
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd
+  --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd --disable-libdeflate
 make install-strip noinst_PROGRAMS= dist_doc_DATA=
 
 if [ -z "$WITHOUT_HIGHWAY" ]; then
@@ -395,7 +392,7 @@ mkdir ${DEPS}/pixman
 $CURL https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
 cd ${DEPS}/pixman
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dlibpng=disabled -Diwmmxt=disabled -Dgtk=disabled -Dopenmp=disabled -Dtests=disabled \
+  -Dlibpng=disabled -Dgtk=disabled -Dopenmp=disabled -Dtests=disabled -Ddemos=disabled \
   ${DARWIN_ARM:+-Da64-neon=disabled}
 meson install -C _build --tag devel
 
@@ -439,8 +436,8 @@ cat >> Cargo.toml <<EOL
 [patch.crates-io]
 zune-jpeg = { git = "https://github.com/ironpeak/zune-image.git", rev = "eebb01b" }
 EOL
-# Regenerate the lockfile after making the above changes
-cargo generate-lockfile
+# Regenerate the lockfile for zune-jpeg
+cargo update zune-jpeg
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # parse that correctly.
 PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
@@ -456,15 +453,17 @@ CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=r
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/vips
-$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
+$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
+# Use version number in SONAME
+$CURL https://gist.githubusercontent.com/lovell/313a6901e9db1bf285f2a1f1180499e4/raw/3988223c7dfa4d22745d9392034b0117abef1446/libvips-cpp-soversion.patch | patch -p1
 # Disable HBR support in heifsave
 $CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
-# Link libvips.so.42 statically into libvips-cpp.so.42
+# Link libvips.so statically into libvips-cpp.so
 sed -i'.bak' "s/library('vips'/static_&/" libvips/meson.build
 sed -i'.bak' "/version: library_version/{N;d;}" libvips/meson.build
 if [ "$LINUX" = true ]; then
-  # Ensure libvips-cpp.so.42 is linked with -z nodelete
+  # Ensure libvips-cpp.so is linked with -z nodelete
   sed -i'.bak' "/gnu_symbol_visibility: 'hidden',/a link_args: nodelete_link_args," cplusplus/meson.build
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
   EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")
