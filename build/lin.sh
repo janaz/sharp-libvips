@@ -101,29 +101,29 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.2.2
+VERSION_ZLIB_NG=2.2.3
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.83.0
+VERSION_GLIB=2.83.2
 VERSION_XML2=2.13.5
-VERSION_EXIF=0.6.24
+VERSION_EXIF=0.6.25
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.44
+VERSION_PNG16=1.6.45
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.4.0
+VERSION_WEBP=1.5.0
 VERSION_TIFF=4.7.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
 VERSION_EXPAT=2.6.4
 VERSION_ARCHIVE=3.7.7
-VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=10.1.0
-VERSION_PIXMAN=0.44.0
+VERSION_FONTCONFIG=2.16.0
+VERSION_HARFBUZZ=10.2.0
+VERSION_PIXMAN=0.44.2
 VERSION_CAIRO=1.18.2
 VERSION_FRIBIDI=1.0.16
-VERSION_PANGO=1.54.0
+VERSION_PANGO=1.56.0
 VERSION_RSVG=2.59.2
 VERSION_AOM=3.11.0
 VERSION_HEIF=1.19.5
@@ -173,7 +173,7 @@ version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
-version_latest "pango" "$VERSION_PANGO" "11783"
+version_latest "pango" "$VERSION_PANGO" "11783" "unstable"
 version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
@@ -238,8 +238,6 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
-# https://github.com/libexif/libexif/pull/147
-$CURL https://github.com/lovell/libexif/commit/db84aefa1deb103604c5860dd6486b1dd3af676b.patch | patch -p1
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   CPPFLAGS="${CPPFLAGS} -DNO_VERBOSE_TAG_DATA"
@@ -393,7 +391,7 @@ $CURL https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar x
 cd ${DEPS}/pixman
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dlibpng=disabled -Dgtk=disabled -Dopenmp=disabled -Dtests=disabled -Ddemos=disabled \
-  ${DARWIN_ARM:+-Da64-neon=disabled}
+  ${WITHOUT_NEON:+-Da64-neon=disabled}
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/cairo
