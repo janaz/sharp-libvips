@@ -101,14 +101,14 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.2.3
-VERSION_FFI=3.4.6
-VERSION_GLIB=2.83.3
-VERSION_XML2=2.13.5
+VERSION_ZLIB_NG=2.2.4
+VERSION_FFI=3.4.7
+VERSION_GLIB=2.83.4
+VERSION_XML2=2.13.6
 VERSION_EXIF=0.6.25
-VERSION_LCMS2=2.16
+VERSION_LCMS2=2.17
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.46
+VERSION_PNG16=1.6.47
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.5.0
@@ -124,10 +124,10 @@ VERSION_PIXMAN=0.44.2
 VERSION_CAIRO=1.18.2
 VERSION_FRIBIDI=1.0.16
 VERSION_PANGO=1.56.1
-VERSION_RSVG=2.59.2
-VERSION_AOM=3.11.0
+VERSION_RSVG=2.59.90
+VERSION_AOM=3.12.0
 VERSION_HEIF=1.19.5
-VERSION_CGIF=0.4.1
+VERSION_CGIF=0.5.0
 VERSION_DE265=1.0.15
 
 # Check for newer versions
@@ -174,7 +174,7 @@ version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783" "unstable"
-version_latest "rsvg" "$VERSION_RSVG" "5420"
+version_latest "rsvg" "$VERSION_RSVG" "5420" "unstable"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
@@ -236,7 +236,7 @@ meson setup _build --default-library=static --buildtype=release --strip --prefix
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/exif
-$CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
+$CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.xz | tar xJC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
@@ -246,7 +246,8 @@ make install-strip doc_DATA=
 mkdir ${DEPS}/lcms2
 $CURL https://github.com/mm2/Little-CMS/releases/download/lcms${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
-CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dtests=disabled 
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/aom
@@ -427,15 +428,10 @@ sed -i'.bak' "/image = /s/, \"gif\", \"webp\"//" rsvg/Cargo.toml
 sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 # Skip build of rsvg-convert
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
-# https://github.com/etemesi254/zune-image/pull/187
-# https://github.com/bevyengine/bevy/issues/14117#issuecomment-2236518551
-# https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html#the-patch-section
-cat >> Cargo.toml <<EOL
-[patch.crates-io]
-zune-jpeg = { git = "https://github.com/ironpeak/zune-image.git", rev = "eebb01b" }
-EOL
-# Regenerate the lockfile for zune-jpeg
-cargo update zune-jpeg
+# https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1066#note_2356762
+sed -i'.bak' "/^if host_system in \['windows'/s/, 'linux'//" meson.build
+# Regenerate the lockfile after making the above changes
+cargo update --workspace
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # parse that correctly.
 PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
@@ -447,7 +443,7 @@ mkdir ${DEPS}/cgif
 $CURL https://github.com/dloebl/cgif/archive/v${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
 cd ${DEPS}/cgif
 CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dtests=false
+  -Dexamples=false -Dtests=false
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/vips
