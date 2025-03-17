@@ -118,7 +118,7 @@ VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
 VERSION_EXPAT=2.7.0
 VERSION_ARCHIVE=3.7.7
-VERSION_FONTCONFIG=2.16.1
+VERSION_FONTCONFIG=2.16.0
 VERSION_HARFBUZZ=10.4.0
 VERSION_PIXMAN=0.44.2
 VERSION_CAIRO=1.18.4
@@ -168,7 +168,7 @@ version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
 version_latest "archive" "$VERSION_ARCHIVE" "1558"
-version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
+#version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
 version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
