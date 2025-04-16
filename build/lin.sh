@@ -103,8 +103,8 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.2.4
 VERSION_FFI=3.4.7
-VERSION_GLIB=2.84.0
-VERSION_XML2=2.13.6
+VERSION_GLIB=2.84.1
+VERSION_XML2=2.14.1
 VERSION_EXIF=0.6.25
 VERSION_LCMS2=2.17
 VERSION_MOZJPEG=4.1.5
@@ -116,10 +116,10 @@ VERSION_TIFF=4.7.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
-VERSION_EXPAT=2.7.0
-VERSION_ARCHIVE=3.7.7
-VERSION_FONTCONFIG=2.16.0
-VERSION_HARFBUZZ=10.4.0
+VERSION_EXPAT=2.7.1
+VERSION_ARCHIVE=3.7.9
+VERSION_FONTCONFIG=2.16.1
+VERSION_HARFBUZZ=11.0.0
 VERSION_PIXMAN=0.44.2
 VERSION_CAIRO=1.18.4
 VERSION_FRIBIDI=1.0.16
@@ -231,6 +231,8 @@ meson install -C _build --tag bin-devel,devel
 mkdir ${DEPS}/xml2
 $CURL https://download.gnome.org/sources/libxml2/$(without_patch $VERSION_XML2)/libxml2-${VERSION_XML2}.tar.xz | tar xJC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
+# https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/306
+$CURL https://gitlab.gnome.org/GNOME/libxml2/-/commit/88732cae7d6031b2fa216faa3dd542681b385117.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dminimum=true
 meson install -C _build --tag devel
@@ -363,7 +365,7 @@ cd ${DEPS}/archive
 make install-strip libarchive_man_MANS=
 
 mkdir ${DEPS}/fontconfig
-$CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
+$CURL https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/${VERSION_FONTCONFIG}/fontconfig-${VERSION_FONTCONFIG}.tar.gz | tar xzC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
