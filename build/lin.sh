@@ -275,10 +275,6 @@ make install/strip
 mkdir ${DEPS}/svt-av1
 $CURL https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v${VERSION_SVTAV1}/SVT-AV1-v${VERSION_SVTAV1}.tar.gz | tar xzC ${DEPS}/svt-av1 --strip-components=1
 cd ${DEPS}/svt-av1
-
-# apply avif patch
-sed -i 's/config_ptr->avif[[:space:]]*=[[:space:]]*false;/config_ptr->avif = true;/' Source/Lib/Globals/enc_settings.c
-
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DUSE_CPUINFO=LOCAL
