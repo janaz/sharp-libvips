@@ -279,7 +279,7 @@ cd ${DEPS}/svt-av1
 # apply avif patch
 sed -i 's/config_ptr->avif[[:space:]]*=[[:space:]]*false;/config_ptr->avif = true;/' Source/Lib/Globals/enc_settings.c
 
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
+CFLAGS="${CFLAGS} -O3 -DSVT_LOG_QUIET" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DUSE_CPUINFO=LOCAL
 make install/strip
