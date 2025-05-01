@@ -17,7 +17,7 @@ download_extract() {
   echo "$PLATFORM -> $PACKAGE"
   rm -rf "npm/$PACKAGE/include" "npm/$PACKAGE/lib"
   $CURL \
-    "https://github.com/janaz/sharp-libvips/releases/download/v${LIBVIPS_VERSION}-revizly6/libvips-$LIBVIPS_VERSION-$PLATFORM.tar.gz" | \
+    "https://github.com/janaz/sharp-libvips/releases/download/v${LIBVIPS_VERSION}-revizly8/libvips-$LIBVIPS_VERSION-$PLATFORM.tar.gz" | \
     tar xzC "npm/$PACKAGE" --exclude="platform.json"
 }
 
