@@ -283,10 +283,6 @@ make install/strip
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
-
-# set avif to true
-$CURL https://gist.githubusercontent.com/janaz/ed0014218110fd2e2350d78fa718ad6c/raw/a36f245e6dd2e5d08c384d8e0d7ecf1e6125e7a2/set_avif.patch | patch -p1
-
 # Downgrade minimum required CMake version to 3.12 - https://github.com/strukturag/libheif/issues/975
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
