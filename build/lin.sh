@@ -128,7 +128,7 @@ VERSION_RSVG=2.60.0
 VERSION_AOM=3.12.1
 VERSION_HEIF=1.19.8
 VERSION_CGIF=0.5.0
-VERSION_DE265=1.0.15
+VERSION_DE265=1.0.16
 
 # Check for newer versions
 # Skip by setting the VERSION_LATEST_REQUIRED environment variable to "false"
