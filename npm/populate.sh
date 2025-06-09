@@ -19,8 +19,9 @@ download_extract() {
   esac
   echo "$PLATFORM -> $PACKAGE"
   rm -rf "npm/$PACKAGE/include" "npm/$PACKAGE/lib"
+
   $CURL \
-    "https://github.com/lovell/sharp-libvips/releases/download/v$VERSION_VIPS/libvips-$VERSION_VIPS-$PLATFORM.tar.gz" | \
+    "https://github.com/janaz/sharp-libvips/releases/download/v${VERSION_VIPS}-revizly12/libvips-$VERSION_VIPS-$PLATFORM.tar.gz" | \
     tar xzC "npm/$PACKAGE" --exclude="platform.json"
 }
 
@@ -56,11 +57,8 @@ remove_unused() {
 
 # Download and extract per-platform binaries
 PLATFORMS=$(ls platforms --ignore=win32*)
-for platform in $PLATFORMS; do
+for platform in linux-arm64v8 linux-x64; do
   download_extract "$platform"
-done
-for platform in arm64v8 ia32 x64; do
-  download_extract "win32-$platform"
 done
 
 # Common header and source files

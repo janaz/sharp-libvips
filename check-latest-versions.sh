@@ -52,5 +52,6 @@ version_latest "vips" "$VERSION_VIPS" "5097"
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "xml2" "$VERSION_XML2" "1783"
 version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
+version_latest "de265" "$VERSION_DE265" "strukturag/libde265"
 
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
