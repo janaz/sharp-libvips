@@ -103,8 +103,8 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.2.4
 VERSION_FFI=3.4.8
-VERSION_GLIB=2.84.1
-VERSION_XML2=2.14.2
+VERSION_GLIB=2.85.0
+VERSION_XML2=2.14.3
 VERSION_EXIF=0.6.25
 VERSION_LCMS2=2.17
 VERSION_MOZJPEG=4.1.5
@@ -117,18 +117,17 @@ VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
 VERSION_EXPAT=2.7.1
-VERSION_ARCHIVE=3.7.9
+VERSION_ARCHIVE=3.8.0
 VERSION_FONTCONFIG=2.16.2
-VERSION_HARFBUZZ=11.2.0
+VERSION_HARFBUZZ=11.2.1
 VERSION_PIXMAN=0.46.0
 VERSION_CAIRO=1.18.4
 VERSION_FRIBIDI=1.0.16
 VERSION_PANGO=1.56.3
 VERSION_RSVG=2.60.0
-VERSION_AOM=3.12.1
+VERSION_AOM=3.12.0
 VERSION_HEIF=1.19.8
 VERSION_CGIF=0.5.0
-VERSION_DE265=1.0.16
 
 # Check for newer versions
 # Skip by setting the VERSION_LATEST_REQUIRED environment variable to "false"
@@ -178,8 +177,6 @@ version_latest "rsvg" "$VERSION_RSVG" "5420" "unstable"
 #version_latest "aom" "$VERSION_AOM" "17628" # aom 3.12.1 requires cmake 3.16 https://aomedia.googlesource.com/aom/+/597a35fbc9837e33366a1108631d9c72ee7a49e7
 version_latest "heif" "$VERSION_HEIF" "64439"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
-version_latest "de265" "$VERSION_DE265" "strukturag/libde265"
-
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
 # Download and build dependencies from source
@@ -263,14 +260,6 @@ AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
   ..
 make install/strip
 
-mkdir ${DEPS}/de265
-$CURL https://github.com/strukturag/libde265/releases/download/v${VERSION_DE265}/libde265-${VERSION_DE265}.tar.gz  | tar xzC ${DEPS}/de265 --strip-components=1
-cd ${DEPS}/de265
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0
-make install/strip
-
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
@@ -278,7 +267,7 @@ cd ${DEPS}/heif
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=ON -DWITH_X265=0
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=0 -DWITH_X265=0
 make install/strip
 
 mkdir ${DEPS}/jpeg
@@ -430,6 +419,8 @@ sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
 # https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1066#note_2356762
 sed -i'.bak' "/^if host_system in \['windows'/s/, 'linux'//" meson.build
+# [PATCH] text: verify pango/fontconfig found a suitable font
+$CURL https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1106.patch | patch -p1
 # Regenerate the lockfile after making the above changes
 cargo update --workspace
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
@@ -450,9 +441,9 @@ mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 # Use version number in SONAME
-$CURL https://gist.githubusercontent.com/janaz/affeb831e648be8dd64f556007f88535/raw/1511be4a573284beec4eaec77c8a43ba7211ab21/libvips-cpp-soversion.patch | patch -p1
+$CURL https://gist.githubusercontent.com/lovell/313a6901e9db1bf285f2a1f1180499e4/raw/3988223c7dfa4d22745d9392034b0117abef1446/libvips-cpp-soversion.patch | patch -p1
 # Disable HBR support in heifsave
-$CURL https://gist.githubusercontent.com/janaz/affeb831e648be8dd64f556007f88535/raw/1511be4a573284beec4eaec77c8a43ba7211ab21/vips-8-heifsave-disable-hbr-support.patch | patch -p1
+$CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
 # Link libvips.so statically into libvips-cpp.so
 sed -i'.bak' "s/library('vips'/static_&/" libvips/meson.build
 sed -i'.bak' "/version: library_version/{N;d;}" libvips/meson.build
@@ -531,7 +522,6 @@ printf "{\n\
   \"archive\": \"${VERSION_ARCHIVE}\",\n\
   \"cairo\": \"${VERSION_CAIRO}\",\n\
   \"cgif\": \"${VERSION_CGIF}\",\n\
-  \"de265\": \"${VERSION_DE265}\",\n\
   \"exif\": \"${VERSION_EXIF}\",\n\
   \"expat\": \"${VERSION_EXPAT}\",\n\
   \"ffi\": \"${VERSION_FFI}\",\n\
