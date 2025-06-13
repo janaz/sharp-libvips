@@ -75,9 +75,6 @@ if [ "$DARWIN" = true ]; then
   mkdir -p $CARGO_HOME
   mkdir -p $RUSTUP_HOME
   export PATH="${CARGO_HOME}/bin:${PATH}"
-  if [ "$PLATFORM" == "darwin-arm64v8" ]; then
-    export DARWIN_ARM=true
-  fi
 fi
 
 # Run as many parallel jobs as there are available CPU cores
@@ -110,9 +107,6 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 if [ "$DARWIN" = true ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --profile minimal
-  if [ "$DARWIN_ARM" = true ]; then
-    ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
-  fi
   CFLAGS= cargo install cargo-c --locked
 fi
 
@@ -145,10 +139,10 @@ mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
 $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/936a6b8013d07d358c6944cc5b5f0e27db707ace/glib-without-gregex.patch | patch -p1
-meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} --datadir=${TARGET}/share ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
   -Dtests=false -Dglib_assert=false -Dglib_checks=false -Dglib_debug=disabled ${DARWIN:+-Dbsymbolic_functions=false}
-# bin-devel is needed for glib-compile-resources
+# bin-devel is needed for glib-mkenums
 meson install -C _build --tag bin-devel,devel
 
 mkdir ${DEPS}/xml2
@@ -183,7 +177,7 @@ cd aom_build
 AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DBUILD_SHARED_LIBS=FALSE -DENABLE_DOCS=0 -DENABLE_TESTS=0 -DENABLE_TESTDATA=0 -DENABLE_TOOLS=0 -DENABLE_EXAMPLES=0 \
-  -DCONFIG_PIC=1 -DENABLE_NASM=1 ${WITHOUT_NEON:+-DENABLE_NEON=0} ${DARWIN_ARM:+-DCONFIG_RUNTIME_CPU_DETECT=0} \
+  -DCONFIG_PIC=1 -DENABLE_NASM=1 ${WITHOUT_NEON:+-DENABLE_NEON=0} \
   -DCONFIG_AV1_HIGHBITDEPTH=0 -DCONFIG_WEBM_IO=0 \
   ..
 make install/strip
@@ -290,6 +284,8 @@ make install-strip libarchive_man_MANS=
 mkdir ${DEPS}/fontconfig
 $CURL https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/${VERSION_FONTCONFIG}/fontconfig-${VERSION_FONTCONFIG}.tar.gz | tar xzC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
+# Disable install of gettext files
+sed -i'.bak' "/subdir('its')/d" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
@@ -487,8 +483,6 @@ printf "{\n\
   \"zlib-ng\": \"${VERSION_ZLIB_NG}\"\n\
 }" >versions.json
 
-printf "\"${PLATFORM}\"" >platform.json
-
 # Add third-party notices
 $CURL -O https://raw.githubusercontent.com/lovell/sharp-libvips/main/THIRD-PARTY-NOTICES.md
 
@@ -496,11 +490,11 @@ $CURL -O https://raw.githubusercontent.com/lovell/sharp-libvips/main/THIRD-PARTY
 ls -al lib
 rm -rf lib
 mv lib-filtered lib
-tar chzf ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
+tar chzf ${PACKAGE}/sharp-libvips-${PLATFORM}.tar.gz \
   include \
   lib \
   *.json \
   THIRD-PARTY-NOTICES.md
 
 # Allow tarballs to be read outside container
-chmod 644 ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.*
+chmod 644 ${PACKAGE}/sharp-libvips-${PLATFORM}.tar.*

@@ -2,12 +2,12 @@
 set -e
 
 # Dependency version numbers
-source ../versions.properties
+source ./versions.properties
 
 # Common options for curl
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
-download_extract() {
+extract() {
   PLATFORM="$1"
   case $1 in
     *ppc64le)
@@ -19,16 +19,13 @@ download_extract() {
   esac
   echo "$PLATFORM -> $PACKAGE"
   rm -rf "npm/$PACKAGE/include" "npm/$PACKAGE/lib"
-
-  $CURL \
-    "https://github.com/janaz/sharp-libvips/releases/download/v${VERSION_VIPS}-revizly12/libvips-$VERSION_VIPS-$PLATFORM.tar.gz" | \
-    tar xzC "npm/$PACKAGE" --exclude="platform.json"
+  tar xzf sharp-libvips-$PLATFORM.tar.gz -C "npm/$PACKAGE"
 }
 
 download_cpp() {
   $CURL \
     --remote-name --output-dir "npm/dev/cplusplus" --create-dirs \
-    "https://raw.githubusercontent.com/libvips/libvips/v$VERSION_VIPS/cplusplus/$1.cpp"
+    "https://raw.githubusercontent.com/janaz/libvips/v$VERSION_VIPS-revizly12/cplusplus/$1.cpp"
 }
 
 generate_readme() {
@@ -56,9 +53,9 @@ remove_unused() {
 }
 
 # Download and extract per-platform binaries
-PLATFORMS=$(ls platforms --ignore=win32*)
 for platform in linux-arm64v8 linux-x64; do
-  download_extract "$platform"
+for platform in $PLATFORMS; do
+  extract "$platform"
 done
 
 # Common header and source files
