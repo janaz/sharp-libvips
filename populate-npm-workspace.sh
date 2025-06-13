@@ -54,7 +54,6 @@ remove_unused() {
 
 # Download and extract per-platform binaries
 for platform in linux-arm64v8 linux-x64; do
-for platform in $PLATFORMS; do
   extract "$platform"
 done
 
