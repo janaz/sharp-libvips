@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian/eol:buster
 LABEL maintainer="Lovell Fuller <npm@lovell.info>"
 
 # Create Debian 11 (glibc 2.31) container suitable for cross-compiling Linux ARMv6 binaries
@@ -27,7 +27,6 @@ RUN \
     libtool \
     ninja-build \
     pkg-config \
-    python3-packaging \
     python3-pip \
     && \
   mkdir /root/tools && \
@@ -35,8 +34,9 @@ RUN \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal \
+    --target arm-unknown-linux-gnueabihf \
+    --default-toolchain nightly \
     && \
-  rustup target add arm-unknown-linux-gnueabihf && \
   cargo install cargo-c --locked && \
   pip3 install meson==1.7.2 tomli
 
@@ -47,6 +47,7 @@ ENV \
   CHOST="arm-rpi-linux-gnueabihf" \
   RUST_TARGET="arm-unknown-linux-gnueabihf" \
   FLAGS="-marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard" \
+  RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
   WITHOUT_NEON="true" \
   # Highway requires NEON (Armv7+)
   WITHOUT_HIGHWAY="true" \

@@ -1,13 +1,13 @@
-FROM debian:bullseye
+FROM debian:bookworm
 LABEL maintainer="Lovell Fuller <npm@lovell.info>"
 
-# Create Debian 11 (glibc 2.31) container suitable for cross-compiling Linux s390x binaries
+# Create Debian 12 (glibc 2.36) container suitable for cross-compiling Linux s390x binaries
 
 # Path settings
 ENV \
   RUSTUP_HOME="/usr/local/rustup" \
   CARGO_HOME="/usr/local/cargo" \
-  PATH="/usr/local/cargo/bin:$PATH"
+  PATH="/usr/local/cargo/bin:/root/.local/bin:$PATH"
 
 # Build dependencies
 RUN \
@@ -27,17 +27,18 @@ RUN \
     libssl-dev \
     libtool \
     ninja-build \
-    pkg-config \
-    python3-packaging \
-    python3-pip \
+    pipx \
+    pkgconf \
+    pkgconf:s390x \
     && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal \
+    --target s390x-unknown-linux-gnu \
+    --default-toolchain nightly \
     && \
-  rustup target add s390x-unknown-linux-gnu && \
   cargo install cargo-c --locked && \
-  pip3 install meson==1.7.2 tomli
+  pipx install meson==1.7.2
 
 # Handy for debugging the compiled targets in Highway (hwy_list_targets)
 #RUN apt-get install -y qemu-user-static
@@ -50,9 +51,9 @@ ENV \
   CHOST="s390x-linux-gnu" \
   RUST_TARGET="s390x-unknown-linux-gnu" \
   FLAGS="" \
-  # Highway supports IBMZ starting from IBM/Z14, which needs GCC 11 or
-  # higher (i.e. Debian 12, glibc 2.36). Therefore, it should be disabled
-  # for the time being.
+  RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
+  # Highway requires IBM z14, which isn't the baseline in
+  # Debian yet. Therefore, it should remain disabled for now.
   #FLAGS="-march=z14 -mzvector" \
   WITHOUT_HIGHWAY="true" \
   MESON="--cross-file=/root/meson.ini"

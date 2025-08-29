@@ -106,7 +106,8 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 if [ "$DARWIN" = true ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --no-modify-path --profile minimal
+    | sh -s -- -y --no-modify-path --profile minimal --default-toolchain nightly
+  export RUSTFLAGS+=" -Zlocation-detail=none -Zfmt-debug=none"
   CFLAGS= cargo install cargo-c --locked
 fi
 
@@ -138,7 +139,7 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/936a6b8013d07d358c6944cc5b5f0e27db707ace/glib-without-gregex.patch | patch -p1
+$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/12773e117bd557b83ba2a7410698db41813c3fda/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} --datadir=${TARGET}/share ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
   -Dtests=false -Dglib_assert=false -Dglib_checks=false -Dglib_debug=disabled ${DARWIN:+-Dbsymbolic_functions=false}
@@ -209,7 +210,7 @@ cmake -G"Unix Makefiles" \
 make install/strip
 
 mkdir ${DEPS}/png
-$CURL https://downloads.sourceforge.net/project/libpng/libpng16/${VERSION_PNG}/libpng-${VERSION_PNG}.tar.xz | tar xJC ${DEPS}/png --strip-components=1
+$CURL https://github.com/pnggroup/libpng/archive/v${VERSION_PNG}.tar.gz | tar xzC ${DEPS}/png --strip-components=1
 cd ${DEPS}/png
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --without-binconfigs --disable-unversioned-libpng-config
@@ -286,6 +287,8 @@ $CURL https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/${VERSION_F
 cd ${DEPS}/fontconfig
 # Disable install of gettext files
 sed -i'.bak' "/subdir('its')/d" meson.build
+# Silence FcInit warnings
+sed -i'.bak' "/using without calling FcInit/d" src/fcobjs.c
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
@@ -334,6 +337,8 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/pango
 $CURL https://download.gnome.org/sources/pango/$(without_patch $VERSION_PANGO)/pango-${VERSION_PANGO}.tar.xz | tar xJC ${DEPS}/pango --strip-components=1
 cd ${DEPS}/pango
+# [PATCH] coretext: remove fallback for macOS 10.7 (EOL 2012) and earlier
+$CURL https://gitlab.gnome.org/GNOME/pango/-/merge_requests/878.patch | patch -p1
 # Disable utils and tools
 sed -i'.bak' "/subdir('utils')/{N;d;}" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
@@ -351,13 +356,11 @@ sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
 # https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1066#note_2356762
 sed -i'.bak' "/^if host_system in \['windows'/s/, 'linux'//" meson.build
-# [PATCH] text: verify pango/fontconfig found a suitable font
-$CURL https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1106.patch | patch -p1
 # Regenerate the lockfile after making the above changes
 cargo update --workspace
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # parse that correctly.
-PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=plain --strip --prefix=${TARGET} ${MESON} \
   -Dintrospection=disabled -Dpixbuf{,-loader}=disabled -Ddocs=disabled -Dvala=disabled -Dtests=false \
   ${RUST_TARGET:+-Dtriplet=$RUST_TARGET}
 meson install -C _build --tag devel
@@ -376,8 +379,6 @@ cd ${DEPS}/vips
 $CURL https://gist.githubusercontent.com/lovell/313a6901e9db1bf285f2a1f1180499e4/raw/3988223c7dfa4d22745d9392034b0117abef1446/libvips-cpp-soversion.patch | patch -p1
 # Disable HBR support in heifsave
 $CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
-# [PATCH] Meson: improve reliability of function checks
-$CURL https://gist.github.com/kleisauke/85912d7fd8b779f2b60690de9b7c565a/raw/88ae86382f24b1aa8c7b8908edafa44d1e503b2b/libvips-improve-reliability-of-function-checks.patch | patch -p1
 # Link libvips.so statically into libvips-cpp.so
 sed -i'.bak' "s/library('vips'/static_&/" libvips/meson.build
 sed -i'.bak' "/version: library_version/{N;d;}" libvips/meson.build
