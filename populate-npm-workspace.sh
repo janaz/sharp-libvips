@@ -25,7 +25,7 @@ extract() {
 download_cpp() {
   $CURL \
     --remote-name --output-dir "npm/dev/cplusplus" --create-dirs \
-    "https://raw.githubusercontent.com/janaz/libvips/v$VERSION_VIPS-revizly12/cplusplus/$1.cpp"
+    "https://raw.githubusercontent.com/libvips/libvips/v$VERSION_VIPS/cplusplus/$1.cpp"
 }
 
 generate_readme() {
