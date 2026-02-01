@@ -1,6 +1,6 @@
 {
   "name": "@revizly/sharp-libvips",
-  "version": "1.0.23",
+  "version": "1.0.26",
   "private": "true",
   "workspaces": [
     "dev",
