@@ -11,6 +11,7 @@ ENV \
 
 # Build dependencies
 RUN \
+  echo "deb http://archive.debian.org/debian buster-backports main" >> /etc/apt/sources.list.d/backports.list && \
   apt-get update && \
   apt-get install -y curl && \
   dpkg --add-architecture armhf && \
@@ -18,17 +19,18 @@ RUN \
   apt-get install -y \
     autoconf \
     autopoint \
-    cmake \
     gettext \
     git \
     gperf \
     jq \
+    libcurl4-openssl-dev \
     libssl-dev \
     libtool \
     ninja-build \
     pkg-config \
     python3-pip \
     && \
+  apt-get install -y -t buster-backports cmake && \
   mkdir /root/tools && \
   curl -Ls https://github.com/rvagg/rpi-newer-crosstools/archive/master.tar.gz | tar xzC /root/tools --strip-components=1 && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
