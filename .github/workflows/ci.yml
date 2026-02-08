@@ -3,11 +3,12 @@ on:
   push:
     branches:
       - main
-      - revizly
+      - revizlify
       - 'temp-*'
   pull_request:
     branches:
       - main
+      - revizlify
     types:
       - opened
       - reopened
