@@ -5,6 +5,8 @@ on:
       - main
       - revizlify
       - 'temp-*'
+  tags:
+      - 'v*'
   pull_request:
     branches:
       - main
