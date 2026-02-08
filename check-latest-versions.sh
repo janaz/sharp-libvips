@@ -20,9 +20,9 @@ version_latest() {
   else
     VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]" | tr '_' '.')
   fi
-  if [ "$VERSION_LATEST" != "$2" ]; then
+  if [ "$VERSION_LATEST" != "" ] && [ "$VERSION_LATEST" != "$2" ]; then
     ALL_AT_VERSION_LATEST=false
-    VERSION_VAR=$(echo "VERSION_$1" | tr [:lower:] [:upper:])
+    VERSION_VAR=$(echo "VERSION_$1" | tr [:lower:]- [:upper:]_)
     sed -i "s/^$VERSION_VAR=.*/$VERSION_VAR=$VERSION_LATEST/" versions.properties
     UPDATES+=("$1")
   fi
@@ -51,7 +51,7 @@ version_latest "png" "$VERSION_PNG" "1705"
 version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
 version_latest "rsvg" "$VERSION_RSVG" "5420" "unstable"
 version_latest "tiff" "$VERSION_TIFF" "1738"
-version_latest "uhdr" "$VERSION_UHDR" "375187"
+#version_latest "uhdr" "$VERSION_UHDR" "375187" # use commit SHA until next tagged release
 version_latest "vips" "$VERSION_VIPS" "5097"
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "xml2" "$VERSION_XML2" "1783"

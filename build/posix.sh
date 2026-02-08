@@ -39,14 +39,13 @@ mkdir ${DEPS}
 mkdir ${TARGET}
 
 # Default optimisation level is for binary size (-Os)
-# Overriden to performance (-O3) for select dependencies that benefit
+# Overridden to performance (-O3) for select dependencies that benefit
 export FLAGS+=" -Os -fPIC"
 
-# Force "new" C++11 ABI compliance
 # Remove async exception unwind/backtrace tables
 # Allow linker to remove unused sections
 if [ "$LINUX" = true ]; then
-  export FLAGS+=" -D_GLIBCXX_USE_CXX11_ABI=1 -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
+  export FLAGS+=" -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
 fi
 
 # Common build paths and flags
@@ -299,13 +298,6 @@ meson setup _build --default-library=static --buildtype=release --strip --prefix
   ${DARWIN:+-Dcoretext=enabled}
 meson install -C _build --tag devel
 
-# pkg-config provided by Amazon Linux 2 doesn't support circular `Requires` dependencies.
-# https://bugs.freedesktop.org/show_bug.cgi?id=7331
-# https://gitlab.freedesktop.org/pkg-config/pkg-config/-/commit/6d6dd43e75e2bc82cfe6544f8631b1bef6e1cf45
-# TODO(kleisauke): Remove when Amazon Linux 2 reaches EOL.
-sed -i'.bak' "/^Requires:/s/ freetype2.*,//" ${TARGET}/lib/pkgconfig/harfbuzz.pc
-sed -i'.bak' "/^Libs:/s/$/ -lfreetype/" ${TARGET}/lib/pkgconfig/harfbuzz.pc
-
 build_freetype -Dharfbuzz=enabled
 
 mkdir ${DEPS}/pixman
@@ -366,14 +358,10 @@ CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=r
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/uhdr
-$CURL https://github.com/google/libultrahdr/archive/v${VERSION_UHDR}.tar.gz | tar xzC ${DEPS}/uhdr --strip-components=1
+$CURL https://github.com/google/libultrahdr/archive/${VERSION_UHDR}.tar.gz | tar xzC ${DEPS}/uhdr --strip-components=1
 cd ${DEPS}/uhdr
-# [PATCH] improper use of clamp macro
-$CURL https://github.com/google/libultrahdr/commit/5ed39d67cd31d254e84ebf76b03d4b7bcc12e2f7.patch | patch -p1
-# [PATCH] Add ppc64le and s390x to recognized architectures
-$CURL https://github.com/google/libultrahdr/pull/376.patch | patch -p1
-# Avoid architecture-specific compile flags
-sed -i'.bak' '/add_compile_options(-[mf]/d' CMakeLists.txt
+# [PATCH] Remove platform and architecture detection logic
+$CURL https://patch-diff.githubusercontent.com/raw/google/libultrahdr/pull/383.patch | patch -p1
 # Ensure install targets are enabled when cross-compiling
 sed -i'.bak' 's/CMAKE_CROSSCOMPILING AND UHDR_ENABLE_INSTALL/FALSE/' CMakeLists.txt
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
@@ -456,6 +444,8 @@ cd ${TARGET}/lib
 if [ "$LINUX" = true ]; then
   # Check that we really linked with -z nodelete
   readelf -Wd ${VIPS_CPP_DEP} | grep -qF NODELETE || (echo "$VIPS_CPP_DEP was not linked with -z nodelete" && exit 1)
+  # Check that we really use the "new" C++11 ABI
+  readelf -Ws ${VIPS_CPP_DEP} | c++filt | grep -qF "::__cxx11::" || (echo "$VIPS_CPP_DEP mistakenly uses the C++03 ABI" && exit 1)
 fi
 copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filtered
 
