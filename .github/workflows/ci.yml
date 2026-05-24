@@ -94,6 +94,6 @@ jobs:
           makeLatest: ${{ !contains(github.ref, '-rc') }}
       - name: Publish npm packages
         if: startsWith(github.ref, 'refs/tags/v')
-        run: cd npm && npm publish --workspaces --tag=${{ contains(github.ref, '-rc') && 'next' || 'latest' }}
+        run: cd npm && npm publish --provenance --workspaces --tag=${{ contains(github.ref, '-rc') && 'next' || 'latest' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
