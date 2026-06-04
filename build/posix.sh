@@ -491,6 +491,7 @@ printf "{\n\
   \"png\": \"${VERSION_PNG}\",\n\
   \"proxy-libintl\": \"${VERSION_PROXY_LIBINTL}\",\n\
   \"rsvg\": \"${VERSION_RSVG}\",\n\
+  \"svt-av1\": \"${VERSION_SVTAV1}\",\n\
   \"tiff\": \"${VERSION_TIFF}\",\n\
   \"uhdr\": \"${VERSION_UHDR}\",\n\
   \"vips\": \"${VERSION_VIPS}\",\n\
