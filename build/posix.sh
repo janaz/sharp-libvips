@@ -390,6 +390,13 @@ $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips
 cd ${DEPS}/vips
 # Use version number in SONAME
 $CURL https://gist.githubusercontent.com/lovell/313a6901e9db1bf285f2a1f1180499e4/raw/3988223c7dfa4d22745d9392034b0117abef1446/libvips-cpp-soversion.patch | patch -p1
+# [revizly] Raise libheif's max_items security limit: libvips clamps it to 16, which
+# rejects real iPhone HEICs (48+ iref references for thumbnails/HDR gain-map/aux images).
+# libheif's own default is 1000; the real DoS protection is the max_total_memory /
+# max_memory_block_size caps on the lines above it, which we keep. The grep makes the
+# build fail loudly if upstream changes the line.
+grep -q 'limits->max_items = 16;' libvips/foreign/heifload.c
+sed -i'.bak' 's/limits->max_items = 16;/limits->max_items = 256;/' libvips/foreign/heifload.c
 # Link libvips.so statically into libvips-cpp.so
 sed -i'.bak' "s/library('vips'/static_&/" libvips/meson.build
 sed -i'.bak' "/version: library_version/{N;d;}" libvips/meson.build
