@@ -386,9 +386,12 @@ cd ${DEPS}/uhdr
 $CURL https://patch-diff.githubusercontent.com/raw/google/libultrahdr/pull/383.patch | patch -p1
 # Ensure install targets are enabled when cross-compiling
 sed -i'.bak' 's/CMAKE_CROSSCOMPILING AND UHDR_ENABLE_INSTALL/FALSE/' CMakeLists.txt
+# [revizly] uhdr 2.0.0 added an optional libheif-based AVIF gain-map helper (avifultrahdr.cpp) enabled by default
+# (UHDR_ENABLE_HEIF), which needs libheif APIs newer than the one we bundle (heif_image_handle_get_gain_map_image_handle
+# etc.). libvips uses uhdr's core gain-map API, not this wrapper, so disable it to avoid the build failure.
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DUHDR_BUILD_EXAMPLES=FALSE -DUHDR_MAX_DIMENSION=65500 ${WITHOUT_NEON:+-DUHDR_ENABLE_INTRINSICS=FALSE}
+  -DBUILD_SHARED_LIBS=FALSE -DUHDR_BUILD_EXAMPLES=FALSE -DUHDR_ENABLE_HEIF=FALSE -DUHDR_MAX_DIMENSION=65500 ${WITHOUT_NEON:+-DUHDR_ENABLE_INTRINSICS=FALSE}
 make install/strip
 
 mkdir ${DEPS}/vips
