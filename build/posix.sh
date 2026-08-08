@@ -197,10 +197,12 @@ make install/strip
 
 mkdir ${DEPS}/svtav1
 # [FORK] use juliobbv-p/svt-av1-hdr (SVT-AV1 with HDR/psychovisual enhancements), a drop-in replacement for mainline SVT-AV1.
-# IMPORTANT: VERSION_SVTAV1 must be a tag that exists in the FORK, which does NOT track mainline SVT-AV1 1:1 —
-# the fork only rebases onto mainline on major bumps and tags its own minor/patch releases. Do not blindly bump this
-# to mainline's latest; check https://github.com/juliobbv-p/svt-av1-hdr/tags first. (check-latest-versions.sh does not track it.)
-$CURL https://github.com/juliobbv-p/svt-av1-hdr/archive/refs/tags/v${VERSION_SVTAV1}.tar.gz | tar xzC ${DEPS}/svtav1 --strip-components=1
+# IMPORTANT: VERSION_SVTAV1 is the EXACT git tag in the FORK (it does NOT track mainline SVT-AV1 1:1). Tags may be
+# semver-with-v (e.g. v4.1.0) OR the fork's periodic "pgo-build-YYYY-MM-DD-<sha>" release tags — set VERSION_SVTAV1 to
+# the full tag string verbatim (the URL below uses it as-is, no 'v' prepended). We compile from source, so the release's
+# prebuilt PGO CLI binaries are not used — only the source at that tag. check-latest-versions.sh does not track this.
+# See https://github.com/juliobbv-p/svt-av1-hdr/tags and /releases.
+$CURL https://github.com/juliobbv-p/svt-av1-hdr/archive/refs/tags/${VERSION_SVTAV1}.tar.gz | tar xzC ${DEPS}/svtav1 --strip-components=1
 cd ${DEPS}/svtav1
 mkdir svt_build
 cd svt_build
