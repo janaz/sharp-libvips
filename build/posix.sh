@@ -471,24 +471,55 @@ if [ "$LINUX" = true ]; then
   mkdir -p ${STATIC}/work/rsvg
   (cd ${STATIC}/work/rsvg && ar x ${TARGET}/lib/librsvg-2.a && ld -r -o ../rsvg.o *.rcgu.o)
   objcopy --wildcard --keep-global-symbol='rsvg_*' ${STATIC}/work/rsvg.o
+  # Its COMDAT groups (DW.ref.rust_eh_personality) share names with the consumer's own, so the
+  # linker would keep only one copy and leave rsvg's local references dangling: rename them.
+  for g in $(readelf -gW ${STATIC}/work/rsvg.o | sed -n 's/^COMDAT group section .*\[\(.*\)\].*/\1/p' | sort -u); do
+    objcopy --redefine-sym "$g=rsvg_$g" ${STATIC}/work/rsvg.o
+  done
   ar rcs ${STATIC}/work/librsvg-2.a ${STATIC}/work/rsvg.o
   cp "$(${CXX:-g++} -print-file-name=libstdc++.a)" ${STATIC}/work/libstdcxx.a
+  # Objects built against glibc 2.28 headers call the resolver by its old internal names
+  # (__dn_expand, __res_nquery, ...); glibc >= 2.34 only has the public names (which 2.28 also
+  # exports). Point such references at the public names; returns the archive to use.
+  static_compat() {
+    local a=$1 members
+    members=$(nm -A "$a" 2>/dev/null | grep -E ' U __(dn|res)_[a-z_]+$' | cut -d: -f2 | sort -u)
+    if [ -z "$members" ]; then echo "$a"; return; fi
+    local copy=${STATIC}/work/compat-$(basename "$a")
+    cp "$a" "$copy"
+    (cd ${STATIC}/work && ar x "$copy" $members)
+    for m in $members; do
+      for sym in $(nm "${STATIC}/work/$m" | sed -n 's/^ *U \(__\(dn\|res\)_[a-z_]*\)$/\1/p' | sort -u); do
+        objcopy --redefine-sym "$sym=${sym#__}" "${STATIC}/work/$m"
+      done
+    done
+    (cd ${STATIC}/work && ar r "$copy" $members && rm -f $members)
+    echo "$copy"
+  }
   declare -A SEEN
+  SEEN[rsvg-2]=1  # replaced by the pre-linked copy (added via the pkg-config list below)
   MRI="create ${STATIC}/lib/libvips-static.a"
   SYSLIBS=""
+  MRI+=$'\n'"addlib ${STATIC}/work/librsvg-2.a"
   for flag in $(${PKG_CONFIG} --libs-only-l vips) -lstdc++; do
     name=${flag#-l}
     [ -n "${SEEN[$name]}" ] && continue
     SEEN[$name]=1
-    if [ "$name" = "rsvg-2" ]; then
-      MRI+=$'\n'"addlib ${STATIC}/work/librsvg-2.a"
-    elif [ -f ${TARGET}/lib/lib${name}.a ]; then
-      MRI+=$'\n'"addlib ${TARGET}/lib/lib${name}.a"
+    if [ -f ${TARGET}/lib/lib${name}.a ]; then
+      MRI+=$'\n'"addlib $(static_compat ${TARGET}/lib/lib${name}.a)"
     elif [ "$name" = "stdc++" ]; then
       MRI+=$'\n'"addlib ${STATIC}/work/libstdcxx.a"
     else
       SYSLIBS+=" ${flag}"
     fi
+  done
+  # pkg-config does not list everything the static link needs (e.g. libheif's SVT-AV1 plugin
+  # dependency): add every other static library of this build too.
+  for a in ${TARGET}/lib/*.a; do
+    name=$(basename $a .a); name=${name#lib}
+    [ -n "${SEEN[$name]}" ] && continue
+    SEEN[$name]=1
+    MRI+=$'\n'"addlib $(static_compat $a)"
   done
   printf '%s\nsave\nend\n' "$MRI" | ar -M
   ranlib ${STATIC}/lib/libvips-static.a
