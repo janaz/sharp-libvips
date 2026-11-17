@@ -489,6 +489,12 @@ if [ "$LINUX" = true ]; then
     if readelf -SW "$a" 2>/dev/null | grep -q '\.gnu\.lto_'; then
       ${CC:-gcc} -r -nostdlib -flto=auto -flinker-output=nolto-rel -o ${STATIC}/work/native-$base.o \
         -Wl,--whole-archive "$a" -Wl,--no-whole-archive
+      # LTO used to internalise its non-API functions; without it they clash with libaom's
+      # same-named av1_* ones, so keep only the API global.
+      case "$base" in
+        libSvtAv1Enc) objcopy --wildcard --keep-global-symbol='svt_*' ${STATIC}/work/native-$base.o ;;
+        *) objcopy --wildcard --localize-symbol='*.lto_priv.*' --localize-symbol='*.constprop.*' ${STATIC}/work/native-$base.o ;;
+      esac
       ar rcs ${STATIC}/work/native-$base.a ${STATIC}/work/native-$base.o
       a=${STATIC}/work/native-$base.a
     fi
