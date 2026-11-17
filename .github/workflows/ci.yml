@@ -22,6 +22,8 @@ jobs:
     permissions:
       contents: read
     runs-on: 'ubuntu-26.04'
+    # [revizly] informational on this branch: it pins libvips 8.18.7 and its deps on purpose
+    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./check-latest-versions.sh && git diff --quiet
