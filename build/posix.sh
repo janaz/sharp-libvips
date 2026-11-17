@@ -456,6 +456,48 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" meson setup _build --default-l
   ${LINUX:+-Dcpp_link_args="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map $EXCLUDE_LIBS"}
 meson install -C _build --tag runtime,devel
 
+# [revizly] Static bundle for Rust (resizer-rs), shipped as a separate release asset next to the
+# npm packages (which are unchanged): libvips (C API) + every dependency + the GCC toolset's
+# libstdc++ merged into a single archive, plus the system libraries it still needs.
+if [ "$LINUX" = true ]; then
+  STATIC=${TARGET}/static
+  mkdir -p ${STATIC}/lib ${STATIC}/work
+  [ -f ${TARGET}/lib/libvips.a ] || (echo "libvips.a was not installed" && exit 1)
+  # librsvg is a Rust staticlib: besides its Rust code it carries a copy of the Rust std, whose
+  # unmangled runtime symbols (rust_eh_personality, __rust_alloc, ...) would clash with the
+  # consuming Rust binary, and copies of the C libraries it links (glib, ffi, ...), which must
+  # come from the shared copies below instead. Pre-link only its Rust objects into one object
+  # and keep just the rsvg_* C API global; its C references stay undefined.
+  mkdir -p ${STATIC}/work/rsvg
+  (cd ${STATIC}/work/rsvg && ar x ${TARGET}/lib/librsvg-2.a && ld -r -o ../rsvg.o *.rcgu.o)
+  objcopy --wildcard --keep-global-symbol='rsvg_*' ${STATIC}/work/rsvg.o
+  ar rcs ${STATIC}/work/librsvg-2.a ${STATIC}/work/rsvg.o
+  cp "$(${CXX:-g++} -print-file-name=libstdc++.a)" ${STATIC}/work/libstdcxx.a
+  declare -A SEEN
+  MRI="create ${STATIC}/lib/libvips-static.a"
+  SYSLIBS=""
+  for flag in $(${PKG_CONFIG} --libs-only-l vips) -lstdc++; do
+    name=${flag#-l}
+    [ -n "${SEEN[$name]}" ] && continue
+    SEEN[$name]=1
+    if [ "$name" = "rsvg-2" ]; then
+      MRI+=$'\n'"addlib ${STATIC}/work/librsvg-2.a"
+    elif [ -f ${TARGET}/lib/lib${name}.a ]; then
+      MRI+=$'\n'"addlib ${TARGET}/lib/lib${name}.a"
+    elif [ "$name" = "stdc++" ]; then
+      MRI+=$'\n'"addlib ${STATIC}/work/libstdcxx.a"
+    else
+      SYSLIBS+=" ${flag}"
+    fi
+  done
+  printf '%s\nsave\nend\n' "$MRI" | ar -M
+  ranlib ${STATIC}/lib/libvips-static.a
+  echo "${SYSLIBS# }" > ${STATIC}/lib/link-args.txt
+  echo "Static bundle: $(du -h ${STATIC}/lib/libvips-static.a | cut -f1), links: $(cat ${STATIC}/lib/link-args.txt)"
+  rm -rf ${STATIC}/work
+  cp -r ${TARGET}/include ${STATIC}/
+fi
+
 # Cleanup
 rm -rf ${TARGET}/lib/{pkgconfig,.libs,*.la,cmake}
 
@@ -556,6 +598,17 @@ tar chzf ${PACKAGE}/sharp-libvips-${PLATFORM}.tar.gz \
   lib \
   *.json \
   THIRD-PARTY-NOTICES.md
+
+if [ "$LINUX" = true ]; then
+  # [revizly] Static bundle tarball (see above)
+  cp versions.json THIRD-PARTY-NOTICES.md ${TARGET}/static/
+  tar czf ${PACKAGE}/libvips-static-${PLATFORM}.tar.gz -C ${TARGET}/static \
+    include \
+    lib \
+    versions.json \
+    THIRD-PARTY-NOTICES.md
+  chmod 644 ${PACKAGE}/libvips-static-${PLATFORM}.tar.gz
+fi
 
 # Allow tarballs to be read outside container
 chmod 644 ${PACKAGE}/sharp-libvips-${PLATFORM}.tar.*
