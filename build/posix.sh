@@ -477,18 +477,28 @@ if [ "$LINUX" = true ]; then
   done
   ar rcs ${STATIC}/work/librsvg-2.a ${STATIC}/work/rsvg.o
   cp "$(${CXX:-g++} -print-file-name=libstdc++.a)" ${STATIC}/work/libstdcxx.a
-  # Objects built against glibc 2.28 headers call the resolver by its old internal names
-  # (__dn_expand, __res_nquery, ...); glibc >= 2.34 only has the public names (which 2.28 also
-  # exports). Point such references at the public names; returns the archive to use.
+  # Objects built against glibc 2.28 headers call some resolver functions by old internal names
+  # (__dn_expand, __res_nquery, ...) that glibc >= 2.34 exports only under the public name
+  # (which 2.28 exports too); __res_ninit/__res_nclose keep theirs. Archives with GCC LTO
+  # bytecode (SVT-AV1) are compiled to native code, since the consumer's linker (rust-lld)
+  # cannot run GCC's LTO. Echoes the archive to merge.
   static_compat() {
-    local a=$1 members
-    members=$(nm -A "$a" 2>/dev/null | grep -E ' U __(dn|res)_[a-z_]+$' | cut -d: -f2 | sort -u)
+    local a=$1 base members
+    base=$(basename "$a" .a)
+    if readelf -SW "$a" 2>/dev/null | grep -q '\.gnu\.lto_'; then
+      ${CC:-gcc} -r -nostdlib -flto=auto -flinker-output=nolto-rel -o ${STATIC}/work/native-$base.o \
+        -Wl,--whole-archive "$a" -Wl,--no-whole-archive
+      ar rcs ${STATIC}/work/native-$base.a ${STATIC}/work/native-$base.o
+      a=${STATIC}/work/native-$base.a
+    fi
+    local renames='__(dn_expand|dn_comp|dn_skipname|res_nquery|res_nsearch|res_nquerydomain|res_nmkquery|res_nsend)'
+    members=$(nm -A "$a" 2>/dev/null | grep -E " U ${renames}\$" | cut -d: -f2 | sort -u)
     if [ -z "$members" ]; then echo "$a"; return; fi
-    local copy=${STATIC}/work/compat-$(basename "$a")
+    local copy=${STATIC}/work/compat-$base.a
     cp "$a" "$copy"
     (cd ${STATIC}/work && ar x "$copy" $members)
     for m in $members; do
-      for sym in $(nm "${STATIC}/work/$m" | sed -n 's/^ *U \(__\(dn\|res\)_[a-z_]*\)$/\1/p' | sort -u); do
+      for sym in $(nm "${STATIC}/work/$m" | grep -oE " U ${renames}\$" | awk '{print $2}' | sort -u); do
         objcopy --redefine-sym "$sym=${sym#__}" "${STATIC}/work/$m"
       done
     done
