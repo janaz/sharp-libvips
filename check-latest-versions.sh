@@ -34,7 +34,7 @@ version_latest() {
 
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "archive" "$VERSION_ARCHIVE" "libarchive/libarchive"
-version_latest "brotli" "$VERSION_BROTLI" "15235"
+version_latest "brotli" "$VERSION_BROTLI" "google/brotli"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
 version_latest "exif" "$VERSION_EXIF" "libexif/libexif"
