@@ -446,10 +446,10 @@ if [ "$LINUX" = true ]; then
   printf "{local:g_param_spec_types;};" > vips.map
 fi
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" meson setup _build --default-library=shared --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Ddeprecated=false -Dexamples=false -Dman=false -Dpo=false -Dtests=false -Dtools=false -Dauto_features=enabled -Dintrospection=disabled -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled \
+  -Dexamples=false -Dman=false -Dpo=false -Dtests=false -Dtools=false -Dauto_features=enabled -Dintrospection=disabled -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled \
   ${WITHOUT_HIGHWAY:+-Dhighway=disabled} -Dorc=disabled -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenexr=disabled \
   -Dopenjpeg=disabled -Dopenslide=disabled -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Draw=disabled -Dspng=disabled \
-  -Dppm=false -Danalyze=false -Dradiance=false \
+  -Dppm=false -Dqoi=false -Danalyze=false -Dradiance=false \
   ${LINUX:+-Dcpp_link_args="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map $EXCLUDE_LIBS"}
 meson install -C _build --tag runtime,devel
 
